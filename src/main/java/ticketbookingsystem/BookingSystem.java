@@ -13,7 +13,7 @@ public class BookingSystem {
         this.showManager = new ShowManager();
         this.scanner = new Scanner(System.in);
         this.dataManager = new DataManager();
-        this.cipher = new Cipher();  // 使用 Cipher 类进行密码加密和验证
+        this.cipher = new Cipher();  //Using Cipher class for encryption and decryption
         initializeShows();
     }
 
@@ -47,13 +47,16 @@ public class BookingSystem {
             }
         }
     }
+    
 
     private void initializeShows() {
         showManager.addMovieShow(new MovieShow("Inception", "2024-09-01", "8:00 PM", "Sci-Fi", 50));
+        showManager.addMovieShow(new MovieShow("Inception", "2024-09-01", "10:00 PM", "Sci-Fi", 50));  // Another showtime for the same movie
         showManager.addMovieShow(new MovieShow("The Dark Knight", "2024-09-02", "6:00 PM", "Action", 40));
+        showManager.addMovieShow(new MovieShow("Interstellar", "2024-09-03", "9:00 PM", "Sci-Fi", 30));
     }
 
-    // 登录现有用户
+    // Login for existing customers
     private void loginAsCustomer() {
         System.out.print("Enter your username (or type 'exit' to quit): ");
         String username = getValidatedInput();
@@ -71,7 +74,7 @@ public class BookingSystem {
         }
     }
 
-    // 创建新用户并加密密码
+    // Create a new customer and encrypt password
     private void createNewCustomer() {
         System.out.print("Enter your username (or type 'exit' to quit): ");
         String username = getValidatedInput();
@@ -91,12 +94,12 @@ public class BookingSystem {
             System.exit(0);
         }
 
-        // 使用 Cipher 类加密密码并保存用户到数据库
+        // Use Cipher class to encrypt password and save user to the database
         dataManager.saveUser(username, email, password, cipher);
         System.out.println("Account created successfully!");
     }
 
-    // 验证用户密码
+    // Verify customer login
     private void verifyCustomerLogin(Customer customer) {
         System.out.print("Enter your password (or type 'exit' to quit): ");
         String password = getValidatedInput();
@@ -104,7 +107,7 @@ public class BookingSystem {
             System.exit(0);
         }
 
-        // 验证密码是否正确
+        // Check passwd
         if (dataManager.checkUserPassword(customer.getName(), password, cipher)) {
             System.out.println("Login successful!");
             displayCustomerMenu(customer);
@@ -113,7 +116,7 @@ public class BookingSystem {
         }
     }
 
-    // 显示用户登录后的菜单
+    // Display customer menu after successful login
     private void displayCustomerMenu(Customer customer) {
         boolean loggedIn = true;
         while (loggedIn) {
@@ -138,61 +141,58 @@ public class BookingSystem {
         }
     }
 
-    // 预定电影票
+    // Book a movie ticket
     private void bookTicket(Customer customer) {
-        System.out.println("Available Movie Shows:");
-        for (MovieShow show : showManager.getAvailableMovieShows()) {
-            System.out.println(show);
-        }
+    System.out.println("Available Movie Shows:");
+    for (MovieShow show : showManager.getAvailableMovieShows()) {
+        System.out.println(show);
+    }
 
-        System.out.print("Enter movie name (or type 'exit' to quit): ");
-        String movieName = getValidatedInput();
-        if (movieName.equalsIgnoreCase("exit")) {
+    
+
+    System.out.print("Enter show ID (or type 'exit' to quit): ");
+    String showId = getValidatedInput();
+    if (showId.equalsIgnoreCase("exit")) {
+        System.exit(0);
+    }
+    
+    int showIdint = Integer.parseInt(showId);
+
+    MovieShow selectedShow = showManager.selectMovieShowById(showIdint); // Use the ID to select show
+    if (selectedShow != null) {
+        selectedShow.displayAvailableSeats();
+        System.out.print("Enter seat number (or type 'exit' to quit): ");
+        String seatNumber = getValidatedInput();
+        if (seatNumber.equalsIgnoreCase("exit")) {
             System.exit(0);
         }
 
-        System.out.print("Enter show date (yyyy-mm-dd) (or type 'exit' to quit): ");
-        String date = getValidatedInput();
-        if (date.equalsIgnoreCase("exit")) {
-            System.exit(0);
-        }
-
-        System.out.print("Enter show time (e.g., 8:00 PM) (or type 'exit' to quit): ");
-        String time = getValidatedInput();
-        if (time.equalsIgnoreCase("exit")) {
-            System.exit(0);
-        }
-
-        MovieShow selectedShow = showManager.selectMovieShow(movieName, date, time);
-        if (selectedShow != null) {
-            selectedShow.displayAvailableSeats();
-            System.out.print("Enter seat number (or type 'exit' to quit): ");
-            String seatNumber = getValidatedInput();
-            if (seatNumber.equalsIgnoreCase("exit")) {
-                System.exit(0);
-            }
-
-            if (selectedShow.isSeatAvailable(seatNumber)) {
+        if (selectedShow.isSeatAvailable(seatNumber)) {
+            if (!dataManager.isSeatAlreadyBooked(customer.getName(), selectedShow.getMovieName(), selectedShow.getDate(), selectedShow.getTime(), seatNumber)) {
                 selectedShow.bookSeat(seatNumber);
                 Ticket ticket = new Ticket(selectedShow, seatNumber, 12.00); // Example price
                 Booking booking = new Booking(customer, ticket);
                 booking.confirmBooking();
                 dataManager.saveBooking(booking);
+                System.out.println("Booking confirmed for seat " + seatNumber);
             } else {
-                System.out.println("Seat not available. Please choose another seat.");
+                System.out.println("Seat " + seatNumber + " has already been booked for this show.");
             }
         } else {
-            System.out.println("Show not found or fully booked.");
+            System.out.println("Seat not available. Please choose another seat.");
         }
+    } else {
+        System.out.println("Show not found or fully booked.");
     }
+}
 
-    // 查看预定信息
+    // View bookings
     private void viewBookings(Customer customer) {
     System.out.println("Viewing Bookings for " + customer.getName());
     dataManager.loadBookings(customer.getName());  // Load bookings for the specific customer
 }
 
-    // 输入验证
+    //
     private String getValidatedInput() {
         String input = scanner.nextLine().trim();
         if (input.equalsIgnoreCase("exit")) {

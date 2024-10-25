@@ -1,30 +1,28 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
 package ticketbookingsystem;
 
-/**
- *
- * @author Yzhang
- */
 import java.util.HashMap;
 import java.util.Map;
 
 public class MovieShow {
+    private static int showIdCounter = 1;  // Static counter to generate unique show IDs
+    private int showId;
     private String movieName;
     private String date;
     private String time;
     private String genre;
     private int totalSeats;
+    private int availableSeats;
     private Map<String, Boolean> seats;
 
     public MovieShow(String movieName, String date, String time, String genre, int totalSeats) {
+        this.showId = showIdCounter++;  // Assign a unique ID to each show
         this.movieName = movieName;
         this.date = date;
         this.time = time;
         this.genre = genre;
         this.totalSeats = totalSeats;
+        this.availableSeats = totalSeats;  // Initially, all seats are available
         this.seats = new HashMap<>();
         initializeSeats();
     }
@@ -34,6 +32,10 @@ public class MovieShow {
             String seatNumber = "A" + i; // Example seat numbering (A1, A2)
             seats.put(seatNumber, true);
         }
+    }
+
+    public int getShowId() {
+        return showId;
     }
 
     public String getMovieName() {
@@ -62,7 +64,8 @@ public class MovieShow {
 
     public synchronized void bookSeat(String seatNumber) {
         if (isSeatAvailable(seatNumber)) {
-            seats.put(seatNumber, false); 
+            seats.put(seatNumber, false);
+            availableSeats--;  // Decrement available seats
         }
     }
 
@@ -86,13 +89,19 @@ public class MovieShow {
             System.out.println();
         }
     }
-    
-    // Override the toString() method to return meaningful information about the movie show
+    public void unbookSeat(String seatNumber) {
+    if (seats.containsKey(seatNumber) && !seats.get(seatNumber)) {
+        seats.put(seatNumber, true);  // Mark seat as available
+        availableSeats++;  // Increment available seats
+        }
+    }
+
     @Override
     public String toString() {
-        return "Movie: " + movieName + ", Date: " + date + ", Time: " + time + ", Genre: " + genre + ", Available Seats: " + totalSeats;
+        return "Show ID: " + showId + ", Movie: " + movieName + ", Date: " + date + ", Time: " + time + ", Genre: " + genre + ", Available Seats: " + availableSeats;
     }
 }
+
 
 
 

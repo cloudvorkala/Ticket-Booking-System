@@ -64,7 +64,7 @@ public class Cipher {
                 this.e = new BigInteger(rs.getString("e"));
                 this.d = new BigInteger(rs.getString("d"));
                 this.n = new BigInteger(rs.getString("n"));
-                //System.out.println("Loaded keys: e=" + e + ", d=" + d + ", n=" + n);  // 打印加载的密钥
+                //System.out.println("Loaded keys: e=" + e + ", d=" + d + ", n=" + n);  // 
                 System.out.println("Keys loaded successfully from the database.");
                 return true;  // Successfully loaded keys
             }
@@ -78,7 +78,7 @@ public class Cipher {
     public String encryptMessage(String input) {
         try {
             String encryptedMessage = eM.eM(input, this.e, this.n);
-            //System.out.println("Encrypting: " + input + " -> " + encryptedMessage);  // 打印加密结果
+            //System.out.println("Encrypting: " + input + " -> " + encryptedMessage);  //
             return encryptedMessage;
         } catch (Exception ex) {
             throw new RuntimeException("Error during encryption: " + ex.getMessage(), ex);

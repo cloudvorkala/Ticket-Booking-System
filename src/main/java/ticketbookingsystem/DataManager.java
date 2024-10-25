@@ -2,6 +2,9 @@ package ticketbookingsystem;
 
 import cipheredUser.Cipher;
 import java.sql.*;
+import java.util.List;
+import java.util.ArrayList;
+
 
 public class DataManager {
     private static final String DB_URL = "jdbc:derby:ticketDB;create=true";  // Derby Database URL
@@ -12,16 +15,16 @@ public class DataManager {
     }
 
     // Create USERS and BOOKINGS tables if they don't exist
-    private void createDatabaseAndTable() {
+private void createDatabaseAndTable() {
     try (Connection conn = DriverManager.getConnection(DB_URL);
          Statement stmt = conn.createStatement()) {
 
-        // 获取数据库的元数据
+        // Get database metadata
         DatabaseMetaData dbMetaData = conn.getMetaData();
 
-        // 检查 USERS 表是否存在
+        // Check if USERS table exists
         ResultSet usersTable = dbMetaData.getTables(null, null, "USERS", null);
-        if (!usersTable.next()) {  // 如果表不存在，则创建表
+        if (!usersTable.next()) {  // If the table doesn't exist, create it
             String createUsersTableSQL = "CREATE TABLE USERS ("
                     + "username VARCHAR(255) PRIMARY KEY,"
                     + "email VARCHAR(255),"
@@ -32,10 +35,11 @@ public class DataManager {
             System.out.println("USERS table already exists.");
         }
 
-        // 检查 BOOKINGS 表是否存在
+        // Check if BOOKINGS table exists
         ResultSet bookingsTable = dbMetaData.getTables(null, null, "BOOKINGS", null);
-        if (!bookingsTable.next()) {  // 如果表不存在，则创建表
+        if (!bookingsTable.next()) {  
             String createBookingsTableSQL = "CREATE TABLE BOOKINGS ("
+                    + "booking_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,"  // Auto-increment ID
                     + "username VARCHAR(255),"
                     + "movie_name VARCHAR(255),"
                     + "show_date VARCHAR(255),"
@@ -57,24 +61,32 @@ public class DataManager {
 
     // Save booking to the database
     public void saveBooking(Booking booking) {
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-             PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO BOOKINGS (username, movie_name, show_date, show_time, seat_number, price) VALUES (?, ?, ?, ?, ?, ?)")) {
+    try (Connection conn = DriverManager.getConnection(DB_URL);
+         PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO BOOKINGS (username, movie_name, show_date, show_time, seat_number, price) VALUES (?, ?, ?, ?, ?, ?)",
+                Statement.RETURN_GENERATED_KEYS)) {  
 
-            ps.setString(1, booking.getCustomer().getName());
-            ps.setString(2, booking.getTicket().getMovieShow().getMovieName());
-            ps.setString(3, booking.getTicket().getMovieShow().getDate());
-            ps.setString(4, booking.getTicket().getMovieShow().getTime());
-            ps.setString(5, booking.getTicket().getSeatNumber());
-            ps.setDouble(6, booking.getTicket().getPrice());
-            ps.executeUpdate();
+        ps.setString(1, booking.getCustomer().getName());
+        ps.setString(2, booking.getTicket().getMovieShow().getMovieName());
+        ps.setString(3, booking.getTicket().getMovieShow().getDate());
+        ps.setString(4, booking.getTicket().getMovieShow().getTime());
+        ps.setString(5, booking.getTicket().getSeatNumber());
+        ps.setDouble(6, booking.getTicket().getPrice());
+        ps.executeUpdate();
 
-            System.out.println("Booking saved successfully.");
-
-        } catch (SQLException ex) {
-            System.out.println("Error saving booking: " + ex.getMessage());
+        
+        ResultSet rs = ps.getGeneratedKeys();
+        if (rs.next()) {
+            int generatedId = rs.getInt(1);
+            booking.setBookingId(generatedId);  
         }
+
+        System.out.println("Booking saved successfully with ID: " + booking.getId());
+
+    } catch (SQLException ex) {
+        System.out.println("Error saving booking: " + ex.getMessage());
     }
+}
 
     // Load bookings for a specific customer
     public void loadBookings(String username) {
@@ -176,6 +188,25 @@ public class DataManager {
             return false;
         }
     }
+    
+    public boolean isSeatAlreadyBooked(String username, String movieName, String date, String time, String seatNumber) {
+    try (Connection conn = DriverManager.getConnection(DB_URL);
+         PreparedStatement ps = conn.prepareStatement(
+             "SELECT * FROM BOOKINGS WHERE username = ? AND movie_name = ? AND show_date = ? AND show_time = ? AND seat_number = ?")) {
+
+        ps.setString(1, username);
+        ps.setString(2, movieName);
+        ps.setString(3, date);
+        ps.setString(4, time);
+        ps.setString(5, seatNumber);
+        ResultSet rs = ps.executeQuery();
+
+        return rs.next();  // If a record is found, the seat is already booked
+    } catch (SQLException ex) {
+        System.out.println("Error checking booking: " + ex.getMessage());
+        return false;
+    }
+}
     //testing 
     public void viewUsersTable() {
         try (Connection conn = DriverManager.getConnection(DB_URL);
@@ -194,6 +225,130 @@ public class DataManager {
             System.out.println("Error viewing USERS table: " + ex.getMessage());
         }
     }
+    
+    public List<Booking> getBookingsForUser(String username) {
+    List<Booking> bookings = new ArrayList<>();
+    try (Connection conn = DriverManager.getConnection(DB_URL);
+         PreparedStatement ps = conn.prepareStatement(
+            "SELECT booking_id, movie_name, show_date, show_time, seat_number, price FROM BOOKINGS WHERE username = ?")) {
+
+        ps.setString(1, username);
+        ResultSet rs = ps.executeQuery();
+
+        while (rs.next()) {
+            int bookingId = rs.getInt("booking_id");
+            String movieName = rs.getString("movie_name");
+            String showDate = rs.getString("show_date");
+            String showTime = rs.getString("show_time");
+            String seatNumber = rs.getString("seat_number");
+            double price = rs.getDouble("price");
+
+            // Create Customer object (if needed) for each booking
+            Customer customer = findCustomerByUsername(username); 
+            MovieShow show = new MovieShow(movieName, showDate, showTime, "", 0);
+            Ticket ticket = new Ticket(show, seatNumber, price);
+            Booking booking = new Booking(customer, ticket);
+            booking.setBookingId(bookingId);
+
+            bookings.add(booking);
+        }
+    } catch (SQLException ex) {
+        System.out.println("Error loading bookings for user: " + ex.getMessage());
+    }
+    return bookings;
+}
+    
+    public List<Booking> getAllBookings() {
+        List<Booking> bookings = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM BOOKINGS")) {
+
+            while (rs.next()) {
+                String username = rs.getString("username");
+                String movieName = rs.getString("movie_name");
+                String showDate = rs.getString("show_date");
+                String showTime = rs.getString("show_time");
+                String seatNumber = rs.getString("seat_number");
+                double price = rs.getDouble("price");
+
+                // Create Booking object and add it to the list
+                Customer customer = findCustomerByUsername(username);
+                MovieShow show = new MovieShow(movieName, showDate, showTime, "", 0);  // Initialize as needed
+                Ticket ticket = new Ticket(show, seatNumber, price);
+                Booking booking = new Booking(customer, ticket);
+
+                bookings.add(booking);
+            }
+        } catch (SQLException ex) {
+            System.out.println("Error retrieving bookings: " + ex.getMessage());
+        }
+        return bookings;
+    }
+    
+    public boolean deleteBooking(int bookingId) {
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement ps = conn.prepareStatement("DELETE FROM BOOKINGS WHERE booking_id = ?")) {
+
+            ps.setInt(1, bookingId);  // 设置预订ID参数
+            int rowsAffected = ps.executeUpdate();  // 执行删除操作
+
+            if (rowsAffected > 0) {
+                System.out.println("Booking with ID " + bookingId + " deleted successfully.");
+                return true;
+            } else {
+                System.out.println("No booking found with ID " + bookingId + ".");
+                return false;
+            }
+
+        } catch (SQLException ex) {
+            System.out.println("Error deleting booking: " + ex.getMessage());
+            return false;
+        }
+    }
+    //return all customers
+    public List<Customer> getAllCustomers() {
+    List<Customer> customers = new ArrayList<>();
+    String query = "SELECT username, email, encrypted_password FROM USERS";
+
+    try (Connection conn = DriverManager.getConnection(DB_URL);
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery(query)) {
+
+        while (rs.next()) {
+            String username = rs.getString("username");
+            String email = rs.getString("email");
+            String encryptedPassword = rs.getString("encrypted_password");
+
+            
+            Customer customer = new Customer(username, email, encryptedPassword);
+            customers.add(customer);
+        }
+
+    } catch (SQLException ex) {
+        System.out.println("Error retrieving customers: " + ex.getMessage());
+    }
+
+    return customers;
+    }
+    
+    public void updateSeatAvailability(int showId, String seatNumber, boolean isAvailable) {
+    try (Connection conn = DriverManager.getConnection(DB_URL);
+         PreparedStatement ps = conn.prepareStatement(
+             "UPDATE SEATS SET available = ? WHERE show_id = ? AND seat_number = ?")) {
+
+        ps.setBoolean(1, isAvailable);
+        ps.setInt(2, showId);
+        ps.setString(3, seatNumber);
+        ps.executeUpdate();
+        System.out.println("Seat availability updated for seat " + seatNumber);
+
+    } catch (SQLException ex) {
+        System.out.println("Error updating seat availability: " + ex.getMessage());
+    }
+}
+
+
 
     // Exit and close connections if necessary (optional for embedded Derby DB)
     public void exit() {
