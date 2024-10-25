@@ -156,7 +156,9 @@ public class BookingSystemGUI {
         JOptionPane.showMessageDialog(null, "Show not found or fully booked.", "Error", JOptionPane.ERROR_MESSAGE);
         return;
     }
-
+    // Display seat selection GUI
+    showSeatSelection(selectedShow);
+/*
     // Display available seats
     StringBuilder availableSeats = new StringBuilder("Available Seats:\n");
     for (Map.Entry<String, Boolean> seat : selectedShow.getSeats().entrySet()) {
@@ -190,9 +192,55 @@ public class BookingSystemGUI {
     booking.confirmBooking();
     dataManager.saveBooking(booking);
 
-    JOptionPane.showMessageDialog(null, "Booking confirmed for seat " + seatNumber, "Success", JOptionPane.INFORMATION_MESSAGE);
+    JOptionPane.showMessageDialog(null, "Booking confirmed for seat " + seatNumber, "Success", JOptionPane.INFORMATION_MESSAGE);*/
 }
+    // Seat selection GUI
+    private void showSeatSelection(MovieShow selectedShow) {
+        JFrame seatFrame = new JFrame("Select Seat");
+        seatFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        seatFrame.setSize(600, 400);
+        seatFrame.setLayout(new GridLayout(6, 10));  // Adjust grid layout to fit more seats
 
+        // Create exit button to close the seat selection window
+        JButton exitButton = new JButton("Exit");
+        exitButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                seatFrame.dispose();  // Close the seat selection window
+            }
+        });
+
+        seatFrame.add(exitButton);
+
+        for (Map.Entry<String, Boolean> seat : selectedShow.getSeats().entrySet()) {
+            JButton seatButton = new JButton(seat.getKey());
+            boolean isBooked = !seat.getValue() || dataManager.isSeatAlreadyBooked(currentCustomer.getName(), selectedShow.getMovieName(),
+                    selectedShow.getDate(), selectedShow.getTime(), seat.getKey());
+
+            seatButton.setEnabled(!isBooked);  // Disable if seat is already booked
+
+            seatButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (isBooked) {
+                        JOptionPane.showMessageDialog(seatFrame, "Seat " + seat.getKey() + " has already been booked.");
+                    } else {
+                        selectedShow.bookSeat(seat.getKey());
+                        Ticket ticket = new Ticket(selectedShow, seat.getKey(), 12.00); // Example price
+                        Booking booking = new Booking(currentCustomer, ticket);
+                        booking.confirmBooking();
+                        dataManager.saveBooking(booking);
+                        seatButton.setEnabled(false);  // Disable the button after booking
+                        JOptionPane.showMessageDialog(seatFrame, "Booking confirmed for seat " + seat.getKey());
+                    }
+                }
+            });
+
+            seatFrame.add(seatButton);
+        }
+
+        seatFrame.setVisible(true);
+    }
 
 
 
