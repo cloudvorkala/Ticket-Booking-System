@@ -195,24 +195,59 @@ public class BookingSystemGUI {
 
     // View bookings
     private void viewBookings() {
-    String username = usernameField.getText();
-    List<Booking> bookings = dataManager.getBookingsForUser(username);
+    if (currentCustomer == null) {
+        JOptionPane.showMessageDialog(frame, "Please log in first.");
+        return;
+    }
+
+    JFrame bookingFrame = new JFrame("Your Bookings");
+    bookingFrame.setSize(900, 900);
+    bookingFrame.setLayout(new GridLayout(0, 1));
+
+    List<Booking> bookings = dataManager.getBookingsForUser(currentCustomer.getName());
 
     if (bookings.isEmpty()) {
-        JOptionPane.showMessageDialog(frame, "No bookings found for user " + username);
+        JOptionPane.showMessageDialog(bookingFrame, "No bookings found.");
     } else {
-        StringBuilder bookingsInfo = new StringBuilder("Bookings for " + username + ":\n");
         for (Booking booking : bookings) {
-            bookingsInfo.append("Booking ID: ").append(booking.getId())
-                        .append(", Movie: ").append(booking.getTicket().getMovieShow().getMovieName())
-                        .append(", Date: ").append(booking.getTicket().getMovieShow().getDate())
-                        .append(", Time: ").append(booking.getTicket().getMovieShow().getTime())
-                        .append(", Seat: ").append(booking.getTicket().getSeatNumber())
-                        .append(", Price: $").append(booking.getTicket().getPrice()).append("\n");
+            String bookingInfo = "Movie: " + booking.getTicket().getMovieShow().getMovieName() +
+                    ", Date: " + booking.getTicket().getMovieShow().getDate() +
+                    ", Time: " + booking.getTicket().getMovieShow().getTime() +
+                    ", Seat: " + booking.getTicket().getSeatNumber();
+
+            JButton bookingButton = new JButton(bookingInfo);
+            bookingButton.addActionListener(e -> deleteUserBooking(booking, bookingFrame));
+            bookingFrame.add(bookingButton);
         }
-        JOptionPane.showMessageDialog(frame, bookingsInfo.toString());
+    }
+
+    bookingFrame.setVisible(true);
+    }
+    
+
+    // Method to handle booking deletion for the logged-in user
+    private void deleteUserBooking(Booking booking, JFrame bookingFrame) {
+    int confirm = JOptionPane.showConfirmDialog(bookingFrame, "Are you sure you want to delete this booking?",
+                                                "Confirm Deletion", JOptionPane.YES_NO_OPTION);
+    if (confirm == JOptionPane.YES_OPTION) {
+        if (dataManager.deleteBooking(booking.getId())) {
+            // 更新数据库和本地对象
+            MovieShow show = booking.getTicket().getMovieShow();
+            String seatNumber = booking.getTicket().getSeatNumber();
+            show.unbookSeat(seatNumber); // 本地释放座位
+            dataManager.updateSeatAvailability(show.getShowId(), seatNumber, true); // 更新数据库
+
+            JOptionPane.showMessageDialog(bookingFrame, "Booking deleted successfully.");
+
+            // 刷新界面
+            bookingFrame.dispose();  // 关闭当前窗口
+            viewBookings();  // 重新加载用户的预订列表和座位状态
+        } else {
+            JOptionPane.showMessageDialog(bookingFrame, "Error deleting booking.");
+        }
     }
 }
+
     
      // Admin login method
     private void adminLogin() {
@@ -277,7 +312,7 @@ public class BookingSystemGUI {
 
         bookingFrame.setVisible(true);
     }
-    
+    //admin delete booking
     private void deleteBooking(Booking booking, JFrame bookingFrame) {
     int confirm = JOptionPane.showConfirmDialog(bookingFrame, "Are you sure you want to delete this booking?",
                                                 "Confirm Deletion", JOptionPane.YES_NO_OPTION);
