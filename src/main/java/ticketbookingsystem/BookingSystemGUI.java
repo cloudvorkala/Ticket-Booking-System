@@ -13,7 +13,7 @@ import java.util.Map;
 public class BookingSystemGUI {
     private JFrame frame;
     private JTextField usernameField, emailField, passwordField;
-    private JButton loginButton, registerButton, bookTicketButton, viewBookingsButton, adminLoginButton;
+    private JButton loginButton, registerButton, bookTicketButton, viewBookingsButton, adminLoginButton, signOutButton;
     private Cipher cipher;
     private DataManager dataManager;
     private ShowManager showManager;
@@ -32,7 +32,8 @@ public class BookingSystemGUI {
         frame = new JFrame("Movie Ticket Booking System");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(400, 300);
-        frame.setLayout(new GridLayout(6, 2));
+        frame.setLayout(new GridLayout(7, 2));
+        frame.setLocationRelativeTo(null);
 
         JLabel usernameLabel = new JLabel("Username:");
         usernameField = new JTextField();
@@ -45,10 +46,19 @@ public class BookingSystemGUI {
 
         loginButton = new JButton("Login");
         registerButton = new JButton("Register");
+         // Set booking and viewing buttons to disabled initially
         bookTicketButton = new JButton("Book Ticket");
-        viewBookingsButton = new JButton("View Bookings");
-        adminLoginButton = new JButton("AdminLogin passwd:admin");  // Admin login button
+        bookTicketButton.setEnabled(false);
 
+        viewBookingsButton = new JButton("View Bookings");
+        viewBookingsButton.setEnabled(false);
+
+        adminLoginButton = new JButton("AdminLogin passwd:admin");  // Admin login button
+        // sign-out button, initially disabled
+        signOutButton = new JButton("Sign Out");
+        signOutButton.setEnabled(false);
+
+        // Add components to frame
         frame.add(usernameLabel);
         frame.add(usernameField);
         frame.add(emailLabel);
@@ -60,15 +70,18 @@ public class BookingSystemGUI {
         frame.add(bookTicketButton);
         frame.add(viewBookingsButton);
         frame.add(adminLoginButton);
+        frame.add(signOutButton);
 
         // Add listeners for buttons
         loginButton.addActionListener(e -> login());
         registerButton.addActionListener(e -> register());
-        bookTicketButton.addActionListener(e -> showMovieSelection()); // Display movie selection
-        viewBookingsButton.addActionListener(e -> viewBookings());
-        adminLoginButton.addActionListener(e -> adminLogin());  // Admin login button action
 
-        
+        // Book and view bookings actions
+        bookTicketButton.addActionListener(e -> showMovieSelection()); 
+        viewBookingsButton.addActionListener(e -> viewBookings());
+
+        adminLoginButton.addActionListener(e -> adminLogin());  // Admin login button action
+        signOutButton.addActionListener(e -> signOut(signOutButton));
 
         frame.setVisible(true);
     }
@@ -79,12 +92,32 @@ public class BookingSystemGUI {
         String password = passwordField.getText();
 
         if (dataManager.checkUserPassword(username, password, cipher)) {
-            currentCustomer = dataManager.findCustomerByUsername(username);  // Set the current logged-in customer
-            JOptionPane.showMessageDialog(frame, "Login successful!");
-        } else {
-             JOptionPane.showMessageDialog(frame, "Login failed. Please check your credentials.");
-        }
+        currentCustomer = dataManager.findCustomerByUsername(username);  // Set the current logged-in customer
+        JOptionPane.showMessageDialog(frame, "Login successful!");
+
+        // Enable booking and viewing buttons after successful login
+        bookTicketButton.setEnabled(true);
+        viewBookingsButton.setEnabled(true);
+        signOutButton.setEnabled(true);
+    } else {
+        JOptionPane.showMessageDialog(frame, "Login failed. Please check your credentials.");
     }
+    }
+    
+    
+    private void signOut(JButton signOutButton) {
+    currentCustomer = null;  // Clear the current customer
+    usernameField.setText("");
+    emailField.setText("");
+    passwordField.setText("");
+
+    // Disable buttons to restrict access to logged-out users
+    bookTicketButton.setEnabled(false);
+    viewBookingsButton.setEnabled(false);
+    signOutButton.setEnabled(false);
+
+    JOptionPane.showMessageDialog(frame, "Signed out successfully.");
+}
 
 
     // Register method
@@ -109,6 +142,7 @@ public class BookingSystemGUI {
         JFrame movieFrame = new JFrame("Select a Movie");
         movieFrame.setSize(400, 400);
         movieFrame.setLayout(new GridLayout(0, 1));
+        movieFrame.setLocationRelativeTo(null);
 
         // Create a button for each unique movie
         showManager.getUniqueMovies().forEach(movieName -> {
@@ -129,6 +163,7 @@ public class BookingSystemGUI {
         JFrame showtimeFrame = new JFrame("Select a Showtime for " + movieName);
         showtimeFrame.setSize(400, 400);
         showtimeFrame.setLayout(new GridLayout(0, 1));
+        showtimeFrame.setLocationRelativeTo(null);
 
         showManager.getShowtimesForMovie(movieName).forEach(show -> {
             JButton showButton = new JButton(show.getDate() + " " + show.getTime());
@@ -149,6 +184,7 @@ public class BookingSystemGUI {
         seatFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         seatFrame.setSize(600, 400);
         seatFrame.setLayout(new GridLayout(6, 10));  // Adjust grid layout to fit more seats
+        seatFrame.setLocationRelativeTo(null);
 
         // Create exit button to close the seat selection window
         JButton exitButton = new JButton("Exit");
@@ -203,6 +239,7 @@ public class BookingSystemGUI {
     JFrame bookingFrame = new JFrame("Your Bookings");
     bookingFrame.setSize(900, 900);
     bookingFrame.setLayout(new GridLayout(0, 1));
+    bookingFrame.setLocationRelativeTo(null);
 
     List<Booking> bookings = dataManager.getBookingsForUser(currentCustomer.getName());
 
@@ -231,17 +268,17 @@ public class BookingSystemGUI {
                                                 "Confirm Deletion", JOptionPane.YES_NO_OPTION);
     if (confirm == JOptionPane.YES_OPTION) {
         if (dataManager.deleteBooking(booking.getId())) {
-            // 更新数据库和本地对象
+            
             MovieShow show = booking.getTicket().getMovieShow();
             String seatNumber = booking.getTicket().getSeatNumber();
-            show.unbookSeat(seatNumber); // 本地释放座位
-            dataManager.updateSeatAvailability(show.getShowId(), seatNumber, true); // 更新数据库
+            show.unbookSeat(seatNumber);
+            dataManager.updateSeatAvailability(show.getShowId(), seatNumber, true); 
 
             JOptionPane.showMessageDialog(bookingFrame, "Booking deleted successfully.");
 
-            // 刷新界面
-            bookingFrame.dispose();  // 关闭当前窗口
-            viewBookings();  // 重新加载用户的预订列表和座位状态
+            
+            bookingFrame.dispose();  
+            viewBookings();  
         } else {
             JOptionPane.showMessageDialog(bookingFrame, "Error deleting booking.");
         }
@@ -264,6 +301,7 @@ public class BookingSystemGUI {
         JFrame adminFrame = new JFrame("Admin Panel - Manage Bookings");
         adminFrame.setSize(400, 400);
         adminFrame.setLayout(new GridLayout(0, 1));
+        adminFrame.setLocationRelativeTo(null);
 
         // Retrieve list of users
         List<Customer> customers = dataManager.getAllCustomers();
@@ -288,6 +326,7 @@ public class BookingSystemGUI {
         JFrame bookingFrame = new JFrame("Bookings for " + customer.getName());
         bookingFrame.setSize(400, 400);
         bookingFrame.setLayout(new GridLayout(0, 1));
+        bookingFrame.setLocationRelativeTo(null);
 
         List<Booking> bookings = dataManager.getBookingsForUser(customer.getName());
         if (bookings.isEmpty()) {
