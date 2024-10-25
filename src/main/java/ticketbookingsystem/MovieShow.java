@@ -1,13 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 
-
-/**
- *
- * @author Yzhang
- */
 package ticketbookingsystem;
 
 import java.util.HashMap;
@@ -96,6 +87,12 @@ public class MovieShow {
         // Print a new line if there are remaining seats not yet printed
         if (count % 10 != 0) {
             System.out.println();
+        }
+    }
+    public void unbookSeat(String seatNumber) {
+    if (seats.containsKey(seatNumber) && !seats.get(seatNumber)) {
+        seats.put(seatNumber, true);  // Mark seat as available
+        availableSeats++;  // Increment available seats
         }
     }
 

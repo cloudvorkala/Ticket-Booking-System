@@ -6,12 +6,14 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.*;
+import java.util.List;
+import java.util.Set;
+import java.util.Map;
 
 public class BookingSystemGUI {
     private JFrame frame;
     private JTextField usernameField, emailField, passwordField;
-    private JButton loginButton, registerButton, bookTicketButton, viewBookingsButton;
+    private JButton loginButton, registerButton, bookTicketButton, viewBookingsButton, adminLoginButton;
     private Cipher cipher;
     private DataManager dataManager;
     private ShowManager showManager;
@@ -30,7 +32,7 @@ public class BookingSystemGUI {
         frame = new JFrame("Movie Ticket Booking System");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(400, 300);
-        frame.setLayout(new GridLayout(5, 2));
+        frame.setLayout(new GridLayout(6, 2));
 
         JLabel usernameLabel = new JLabel("Username:");
         usernameField = new JTextField();
@@ -45,6 +47,7 @@ public class BookingSystemGUI {
         registerButton = new JButton("Register");
         bookTicketButton = new JButton("Book Ticket");
         viewBookingsButton = new JButton("View Bookings");
+        adminLoginButton = new JButton("AdminLogin passwd:admin");  // Admin login button
 
         frame.add(usernameLabel);
         frame.add(usernameField);
@@ -56,35 +59,16 @@ public class BookingSystemGUI {
         frame.add(registerButton);
         frame.add(bookTicketButton);
         frame.add(viewBookingsButton);
+        frame.add(adminLoginButton);
 
         // Add listeners for buttons
-        loginButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                login();
-            }
-        });
+        loginButton.addActionListener(e -> login());
+        registerButton.addActionListener(e -> register());
+        bookTicketButton.addActionListener(e -> showMovieSelection()); // Display movie selection
+        viewBookingsButton.addActionListener(e -> viewBookings());
+        adminLoginButton.addActionListener(e -> adminLogin());  // Admin login button action
 
-        registerButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                register();
-            }
-        });
-
-        bookTicketButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                bookTicket();
-            }
-        });
-
-        viewBookingsButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                viewBookings();
-            }
-        });
+        
 
         frame.setVisible(true);
     }
@@ -121,79 +105,44 @@ public class BookingSystemGUI {
     showManager.addMovieShow(new MovieShow("The Dark Knight", "2024-09-02", "6:00 PM", "Action", 40));
     showManager.addMovieShow(new MovieShow("Interstellar", "2024-09-03", "9:00 PM", "Sci-Fi", 30));
 }
-    private void bookTicket() {
-    if (currentCustomer == null) {
-        JOptionPane.showMessageDialog(frame, "Please login first to book a ticket.", "Error", JOptionPane.ERROR_MESSAGE);
-        return;
+    private void showMovieSelection() {
+        JFrame movieFrame = new JFrame("Select a Movie");
+        movieFrame.setSize(400, 400);
+        movieFrame.setLayout(new GridLayout(0, 1));
+
+        // Create a button for each unique movie
+        showManager.getUniqueMovies().forEach(movieName -> {
+            JButton movieButton = new JButton(movieName);
+            movieButton.addActionListener(e -> showShowtimes(movieName));
+            movieFrame.add(movieButton);
+        });
+
+        JButton exitButton = new JButton("Return");
+        exitButton.addActionListener(e -> movieFrame.dispose());
+        movieFrame.add(exitButton);
+
+        movieFrame.setVisible(true);
     }
 
-    // Display available movie shows
-    StringBuilder availableShows = new StringBuilder("Available Movie Shows:\n");
-    for (MovieShow show : showManager.getAvailableMovieShows()) {
-        availableShows.append(show.toString()).append("\n");
+    // Show showtimes for a selected movie
+    private void showShowtimes(String movieName) {
+        JFrame showtimeFrame = new JFrame("Select a Showtime for " + movieName);
+        showtimeFrame.setSize(400, 400);
+        showtimeFrame.setLayout(new GridLayout(0, 1));
+
+        showManager.getShowtimesForMovie(movieName).forEach(show -> {
+            JButton showButton = new JButton(show.getDate() + " " + show.getTime());
+            showButton.addActionListener(e -> showSeatSelection(show));
+            showtimeFrame.add(showButton);
+        });
+
+        JButton exitButton = new JButton("Return");
+        exitButton.addActionListener(e -> showtimeFrame.dispose());
+        showtimeFrame.add(exitButton);
+
+        showtimeFrame.setVisible(true);
     }
-
-    // Display available shows in the GUI
-    JOptionPane.showMessageDialog(null, availableShows.toString(), "Movie Shows", JOptionPane.INFORMATION_MESSAGE);
-
-    // Get show ID from the user
-    String showId = JOptionPane.showInputDialog(null, "Enter show ID (or type 'exit' to quit):");
-    if (showId == null || showId.equalsIgnoreCase("exit")) {
-        return; // Exit if user cancels or inputs 'exit'
-    }
-
-    int showIdInt;
-    try {
-        showIdInt = Integer.parseInt(showId);
-    } catch (NumberFormatException e) {
-        JOptionPane.showMessageDialog(null, "Invalid show ID. Please enter a valid number.", "Error", JOptionPane.ERROR_MESSAGE);
-        return;
-    }
-
-    // Select the show by ID
-    MovieShow selectedShow = showManager.selectMovieShowById(showIdInt);
-    if (selectedShow == null) {
-        JOptionPane.showMessageDialog(null, "Show not found or fully booked.", "Error", JOptionPane.ERROR_MESSAGE);
-        return;
-    }
-    // Display seat selection GUI
-    showSeatSelection(selectedShow);
-/*
-    // Display available seats
-    StringBuilder availableSeats = new StringBuilder("Available Seats:\n");
-    for (Map.Entry<String, Boolean> seat : selectedShow.getSeats().entrySet()) {
-        if (seat.getValue()) {
-            availableSeats.append(seat.getKey()).append(" ");
-        }
-    }
-    JOptionPane.showMessageDialog(null, availableSeats.toString(), "Available Seats", JOptionPane.INFORMATION_MESSAGE);
-
-    // Get seat number from the user
-    String seatNumber = JOptionPane.showInputDialog(null, "Enter seat number (or type 'exit' to quit):");
-    if (seatNumber == null || seatNumber.equalsIgnoreCase("exit")) {
-        return; // Exit if user cancels or inputs 'exit'
-    }
-
-    if (!selectedShow.isSeatAvailable(seatNumber)) {
-        JOptionPane.showMessageDialog(null, "Seat not available. Please choose another seat.", "Error", JOptionPane.ERROR_MESSAGE);
-        return;
-    }
-
-    // Check if the seat has already been booked
-    if (dataManager.isSeatAlreadyBooked(currentCustomer.getName(), selectedShow.getMovieName(), selectedShow.getDate(), selectedShow.getTime(), seatNumber)) {
-        JOptionPane.showMessageDialog(null, "Seat " + seatNumber + " has already been booked for this show.", "Error", JOptionPane.ERROR_MESSAGE);
-        return;
-    }
-
-    // Proceed with booking
-    selectedShow.bookSeat(seatNumber);
-    Ticket ticket = new Ticket(selectedShow, seatNumber, 12.00); // Example price
-    Booking booking = new Booking(currentCustomer, ticket);
-    booking.confirmBooking();
-    dataManager.saveBooking(booking);
-
-    JOptionPane.showMessageDialog(null, "Booking confirmed for seat " + seatNumber, "Success", JOptionPane.INFORMATION_MESSAGE);*/
-}
+    
     // Seat selection GUI
     private void showSeatSelection(MovieShow selectedShow) {
         JFrame seatFrame = new JFrame("Select Seat");
@@ -246,10 +195,111 @@ public class BookingSystemGUI {
 
     // View bookings
     private void viewBookings() {
-        String username = usernameField.getText();
-        String bookings = dataManager.getBookingsForUser(username);
-        JOptionPane.showMessageDialog(frame, bookings);
+    String username = usernameField.getText();
+    List<Booking> bookings = dataManager.getBookingsForUser(username);
+
+    if (bookings.isEmpty()) {
+        JOptionPane.showMessageDialog(frame, "No bookings found for user " + username);
+    } else {
+        StringBuilder bookingsInfo = new StringBuilder("Bookings for " + username + ":\n");
+        for (Booking booking : bookings) {
+            bookingsInfo.append("Booking ID: ").append(booking.getId())
+                        .append(", Movie: ").append(booking.getTicket().getMovieShow().getMovieName())
+                        .append(", Date: ").append(booking.getTicket().getMovieShow().getDate())
+                        .append(", Time: ").append(booking.getTicket().getMovieShow().getTime())
+                        .append(", Seat: ").append(booking.getTicket().getSeatNumber())
+                        .append(", Price: $").append(booking.getTicket().getPrice()).append("\n");
+        }
+        JOptionPane.showMessageDialog(frame, bookingsInfo.toString());
     }
+}
+    
+     // Admin login method
+    private void adminLogin() {
+        String adminPassword = JOptionPane.showInputDialog(frame, "Enter Admin Password:");
+        if ("admin".equals(adminPassword)) {
+            showAdminPanel();  // Display admin management panel on successful login
+        } else {
+            JOptionPane.showMessageDialog(frame, "Incorrect admin password.");
+        }
+    }
+
+    // Admin management panel
+    private void showAdminPanel() {
+        JFrame adminFrame = new JFrame("Admin Panel - Manage Bookings");
+        adminFrame.setSize(400, 400);
+        adminFrame.setLayout(new GridLayout(0, 1));
+
+        // Retrieve list of users
+        List<Customer> customers = dataManager.getAllCustomers();
+        if (customers.isEmpty()) {
+            JOptionPane.showMessageDialog(adminFrame, "No users found.");
+            return;
+        }
+
+        for (Customer customer : customers) {
+            JButton userButton = new JButton(customer.getName());
+            userButton.addActionListener(e -> showUserBookings(customer)); // Open bookings for this user
+            adminFrame.add(userButton);
+        }
+
+        JButton exitButton = new JButton("Return");
+        exitButton.addActionListener(e -> adminFrame.dispose());
+        adminFrame.add(exitButton);
+
+        adminFrame.setVisible(true);
+    }
+    private void showUserBookings(Customer customer) {
+        JFrame bookingFrame = new JFrame("Bookings for " + customer.getName());
+        bookingFrame.setSize(400, 400);
+        bookingFrame.setLayout(new GridLayout(0, 1));
+
+        List<Booking> bookings = dataManager.getBookingsForUser(customer.getName());
+        if (bookings.isEmpty()) {
+            JOptionPane.showMessageDialog(bookingFrame, "No bookings found for " + customer.getName());
+            return;
+        }
+
+        for (Booking booking : bookings) {
+            String bookingInfo = "Movie: " + booking.getTicket().getMovieShow().getMovieName() +
+                             ", Date: " + booking.getTicket().getMovieShow().getDate() +
+                             ", Time: " + booking.getTicket().getMovieShow().getTime() +
+                             ", Seat: " + booking.getTicket().getSeatNumber();
+        
+        JButton bookingButton = new JButton(bookingInfo);
+        bookingButton.addActionListener(e -> deleteBooking(booking, bookingFrame));
+        bookingFrame.add(bookingButton);
+        }
+
+        JButton returnButton = new JButton("Return");
+        returnButton.addActionListener(e -> bookingFrame.dispose());
+        bookingFrame.add(returnButton);
+
+        bookingFrame.setVisible(true);
+    }
+    
+    private void deleteBooking(Booking booking, JFrame bookingFrame) {
+    int confirm = JOptionPane.showConfirmDialog(bookingFrame, "Are you sure you want to delete this booking?",
+                                                "Confirm Deletion", JOptionPane.YES_NO_OPTION);
+    if (confirm == JOptionPane.YES_OPTION) {
+        if (dataManager.deleteBooking(booking.getId())) {
+            MovieShow show = booking.getTicket().getMovieShow();
+            String seatNumber = booking.getTicket().getSeatNumber();
+            show.unbookSeat(seatNumber);//return the seat to avilable
+            
+            dataManager.updateSeatAvailability(show.getShowId(), seatNumber, true);// make sure database also set seat back to avilable
+            
+            JOptionPane.showMessageDialog(bookingFrame, "Booking deleted successfully.");
+            bookingFrame.dispose();  // Close and refresh
+            showUserBookings(booking.getCustomer());  // Refresh bookings for the specific customer
+        } else {
+            JOptionPane.showMessageDialog(bookingFrame, "Error deleting booking.");
+        }
+    }
+}
+
+    
+    
 
     public static void main(String[] args) {
         new BookingSystemGUI();

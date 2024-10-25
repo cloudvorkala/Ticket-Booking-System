@@ -11,6 +11,7 @@ package ticketbookingsystem;
 public class Booking {
     private Customer customer;
     private Ticket ticket;
+    private int bookingId;
 
     public Booking(Customer customer, Ticket ticket) {
         this.customer = customer;
@@ -29,6 +30,13 @@ public class Booking {
     public Ticket getTicket() {
         return ticket;
     }
+    public void setBookingId(int bookingId) {
+        this.bookingId = bookingId;
+    }
+    public int getId() {
+        return bookingId;
+    }
+    
 }
 
 
