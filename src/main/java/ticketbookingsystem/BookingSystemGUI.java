@@ -12,8 +12,9 @@ import java.util.Map;
 
 public class BookingSystemGUI {
     private JFrame frame;
-    private JTextField usernameField, emailField, passwordField;
-    private JButton loginButton, registerButton, bookTicketButton, viewBookingsButton, adminLoginButton, signOutButton;
+    private JTextField usernameField, emailField;
+    private JPasswordField passwordField;
+    private JButton loginButton, registerButton, bookTicketButton, viewBookingsButton, adminLoginButton, signOutButton, toggleButton;
     private Cipher cipher;
     private DataManager dataManager;
     private ShowManager showManager;
@@ -25,16 +26,19 @@ public class BookingSystemGUI {
         this.dataManager = new DataManager();  // Manage database
         this.showManager = new ShowManager();
         initializeShows();
-        
+
         
 
         // Setup GUI components
         frame = new JFrame("Movie Ticket Booking System");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(400, 300);
-        frame.setLayout(new GridLayout(7, 2));
+        frame.setSize(500, 400);
+        frame.setLayout(new GridLayout(9, 2));
         frame.setLocationRelativeTo(null);
-
+        
+        JLabel titleLabel_1 = new JLabel("Welcome!");
+        JLabel titleLabel_2 = new JLabel("Please login to book a ticket!");
+        
         JLabel usernameLabel = new JLabel("Username:");
         usernameField = new JTextField();
 
@@ -43,6 +47,9 @@ public class BookingSystemGUI {
 
         JLabel passwordLabel = new JLabel("Password:");
         passwordField = new JPasswordField();
+        
+        toggleButton = new JButton("Double click to show password");
+        toggleButton.setEnabled(true);
 
         loginButton = new JButton("Login");
         registerButton = new JButton("Register");
@@ -53,24 +60,39 @@ public class BookingSystemGUI {
         viewBookingsButton = new JButton("View Bookings");
         viewBookingsButton.setEnabled(false);
 
-        adminLoginButton = new JButton("AdminLogin passwd:admin");  // Admin login button
+        adminLoginButton = new JButton("Admin Login psd:admin");  // Admin login button
         // sign-out button, initially disabled
         signOutButton = new JButton("Sign Out");
         signOutButton.setEnabled(false);
-
+        
+        JLabel titleLabel_3 = new JLabel("Ver 1.0");
+        JLabel titleLabel_4 = new JLabel("A project for COMP603");
+        
+        ImageIcon imageIcon = new ImageIcon("image/AUT.jpg");
+        Image image = imageIcon.getImage();
+        Image scaledImage = image.getScaledInstance(100,50,Image.SCALE_SMOOTH);
+        JLabel imageLabel = new JLabel(new ImageIcon(scaledImage));
+        
         // Add components to frame
+        frame.add(titleLabel_1);
+        frame.add(titleLabel_2);
         frame.add(usernameLabel);
         frame.add(usernameField);
         frame.add(emailLabel);
         frame.add(emailField);
         frame.add(passwordLabel);
         frame.add(passwordField);
+        frame.add(imageLabel);
+        frame.add(toggleButton);
+        
         frame.add(loginButton);
         frame.add(registerButton);
         frame.add(bookTicketButton);
         frame.add(viewBookingsButton);
         frame.add(adminLoginButton);
         frame.add(signOutButton);
+        frame.add(titleLabel_3);
+        frame.add(titleLabel_4);
 
         // Add listeners for buttons
         loginButton.addActionListener(e -> login());
@@ -79,7 +101,7 @@ public class BookingSystemGUI {
         // Book and view bookings actions
         bookTicketButton.addActionListener(e -> showMovieSelection()); 
         viewBookingsButton.addActionListener(e -> viewBookings());
-
+        toggleButton.addActionListener(e -> showPassword());
         adminLoginButton.addActionListener(e -> adminLogin());  // Admin login button action
         signOutButton.addActionListener(e -> signOut(signOutButton));
 
@@ -101,10 +123,30 @@ public class BookingSystemGUI {
         signOutButton.setEnabled(true);
     } else {
         JOptionPane.showMessageDialog(frame, "Login failed. Please check your credentials.");
-    }
+        }
     }
     
-    
+    private void showPassword(){
+        // Add ActionListener to toggle password visibility
+        toggleButton.addActionListener(new ActionListener() {
+        private boolean showingPassword = false;
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if (showingPassword) {
+                // Mask the password by setting the echo character to '*'
+                passwordField.setEchoChar('*');
+                toggleButton.setText("Show Password");
+            } else {
+                // Show the password by setting the echo character to 0 (no mask)
+                passwordField.setEchoChar((char) 0);
+                toggleButton.setText("Hide Password");
+            }
+            showingPassword = !showingPassword; // Toggle the state
+            }
+        });
+    }
+ 
     private void signOut(JButton signOutButton) {
     currentCustomer = null;  // Clear the current customer
     usernameField.setText("");
@@ -117,7 +159,7 @@ public class BookingSystemGUI {
     signOutButton.setEnabled(false);
 
     JOptionPane.showMessageDialog(frame, "Signed out successfully.");
-}
+    }
 
 
     // Register method
@@ -128,6 +170,9 @@ public class BookingSystemGUI {
 
         dataManager.saveUser(username, email, password, cipher);
         JOptionPane.showMessageDialog(frame, "User registered successfully!");
+        usernameField.setText("");
+        emailField.setText("");
+        passwordField.setText("");
     }
 
     // Book a ticket
