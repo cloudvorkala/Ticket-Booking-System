@@ -9,6 +9,7 @@ import java.awt.event.ActionListener;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
+import java.util.ArrayList;
 
 public class BookingSystemGUI {
     private JFrame frame;
@@ -19,6 +20,7 @@ public class BookingSystemGUI {
     private DataManager dataManager;
     private ShowManager showManager;
     private Customer currentCustomer;
+    private ArrayList<String> usernames = new ArrayList<>();
 
 
     public BookingSystemGUI() {
@@ -112,7 +114,7 @@ public class BookingSystemGUI {
     private void login() {
         String username = usernameField.getText();
         String password = passwordField.getText();
-
+        
         if (dataManager.checkUserPassword(username, password, cipher)) {
         currentCustomer = dataManager.findCustomerByUsername(username);  // Set the current logged-in customer
         JOptionPane.showMessageDialog(frame, "Login successful!");
@@ -161,13 +163,28 @@ public class BookingSystemGUI {
     JOptionPane.showMessageDialog(frame, "Signed out successfully.");
     }
 
-
+    //Check for duplicate usernames
+    private boolean isDuplicateUsername(String username){
+        int count = 0;
+        for(String user:usernames){
+            if(user.equals(username)){
+                count++;
+            }
+        }
+        return count>1;
+    }
+    
     // Register method
     private void register() {
         String username = usernameField.getText();
         String email = emailField.getText();
         String password = passwordField.getText();
-
+        usernames.add(username);
+        //Check if duplicate username entered
+        if(isDuplicateUsername(username)){
+            JOptionPane.showMessageDialog(frame, "Error: Duplicate username found. Please use another one.");
+            return;
+        }
         dataManager.saveUser(username, email, password, cipher);
         JOptionPane.showMessageDialog(frame, "User registered successfully!");
         usernameField.setText("");
