@@ -168,7 +168,7 @@ public class BookingSystem {
         }
 
         if (selectedShow.isSeatAvailable(seatNumber)) {
-            if (!dataManager.isSeatAlreadyBooked(customer.getName(), selectedShow.getMovieName(), selectedShow.getDate(), selectedShow.getTime(), seatNumber)) {
+            if (!dataManager.isSeatAlreadyBooked( selectedShow.getMovieName(), selectedShow.getDate(), selectedShow.getTime(), seatNumber)) {
                 selectedShow.bookSeat(seatNumber);
                 Ticket ticket = new Ticket(selectedShow, seatNumber, 12.00); // Example price
                 Booking booking = new Booking(customer, ticket);

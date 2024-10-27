@@ -189,19 +189,18 @@ private void createDatabaseAndTable() {
         }
     }
     
-    public boolean isSeatAlreadyBooked(String username, String movieName, String date, String time, String seatNumber) {
+    public boolean isSeatAlreadyBooked(String movieName, String date, String time, String seatNumber) {
     try (Connection conn = DriverManager.getConnection(DB_URL);
          PreparedStatement ps = conn.prepareStatement(
-             "SELECT * FROM BOOKINGS WHERE username = ? AND movie_name = ? AND show_date = ? AND show_time = ? AND seat_number = ?")) {
+             "SELECT * FROM BOOKINGS WHERE movie_name = ? AND show_date = ? AND show_time = ? AND seat_number = ?")) {
 
-        ps.setString(1, username);
-        ps.setString(2, movieName);
-        ps.setString(3, date);
-        ps.setString(4, time);
-        ps.setString(5, seatNumber);
+        ps.setString(1, movieName);
+        ps.setString(2, date);
+        ps.setString(3, time);
+        ps.setString(4, seatNumber);
         ResultSet rs = ps.executeQuery();
 
-        return rs.next();  // If a record is found, the seat is already booked
+        return rs.next();  // If a record is found, the seat is already booked by any user
     } catch (SQLException ex) {
         System.out.println("Error checking booking: " + ex.getMessage());
         return false;

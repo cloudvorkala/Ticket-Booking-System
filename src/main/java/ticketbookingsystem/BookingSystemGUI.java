@@ -261,7 +261,7 @@ public class BookingSystemGUI {
 
         for (Map.Entry<String, Boolean> seat : selectedShow.getSeats().entrySet()) {
             JButton seatButton = new JButton(seat.getKey());
-            boolean isBooked = !seat.getValue() || dataManager.isSeatAlreadyBooked(currentCustomer.getName(), selectedShow.getMovieName(),
+            boolean isBooked = !seat.getValue() || dataManager.isSeatAlreadyBooked( selectedShow.getMovieName(),
                     selectedShow.getDate(), selectedShow.getTime(), seat.getKey());
 
             seatButton.setEnabled(!isBooked);  // Disable if seat is already booked
